@@ -3,10 +3,13 @@ exports.dialog = {
     type: 'ModalAlert',
     options: {
       markdowns: [
-        '## Great Job!!!',
+        '## Well Done',
         '',
         'You solved the level in *{numCommands}* command(s); ',
-        'our solution uses {best}.'
+        'our solution uses {best}.',
+        '',
+        'Here is the flag for completing the first challenge',
+        'CSIT{EWP@YAL3BARSTA7I0N}',
       ]
     }
   }],
