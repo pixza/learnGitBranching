@@ -28,12 +28,14 @@ class CommandsHelperBarView extends React.Component {
       onClick: function() {
         this.fireCommand('levels');
       }.bind(this),
-    }, {
-      text: intl.str('command-helper-bar-solution'),
-      onClick: function() {
-        this.fireCommand('show solution');
-      }.bind(this),
-    }, {
+    },
+    //  {
+    //   text: intl.str('command-helper-bar-solution'),
+    //   onClick: function() {
+    //     this.fireCommand('show solution');
+    //   }.bind(this),
+    // },
+    {
       text: intl.str('command-helper-bar-reset'),
       onClick: function() {
         this.fireCommand('reset');
