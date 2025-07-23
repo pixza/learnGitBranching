@@ -40,7 +40,7 @@ exports.level = {
               "* `c9` (main branch's correct commits after mistake `c8`)",
               "",
               "## Tips",
-              "use `objective` to bring up this dialog again",
+              "use `help level` to bring up this dialog again",
               "",
               "use `show goal` to visualize what the end state should be, `hide goal` to get it out of your way",
               "",
