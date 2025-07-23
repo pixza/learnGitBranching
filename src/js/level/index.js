@@ -541,23 +541,23 @@ var Level = Sandbox.extend({
       }
     }
 
-    if (!skipFinishDialog) {
-      finishAnimationChain = finishAnimationChain.then(function() {
-        // we want to ask if they will move onto the next level
-        // while giving them their results...
-        var nextDialog = new NextLevelConfirm({
-          nextLevel: nextLevel,
-          numCommands: numCommands,
-          best: best
-        });
-
-        return nextDialog.getPromise();
+    
+    finishAnimationChain = finishAnimationChain.then(function() {
+      // we want to ask if they will move onto the next level
+      // while giving them their results...
+      
+      var nextDialog = new NextLevelConfirm({
+        nextLevel: nextLevel,
+        numCommands: numCommands,
+        best: best
       });
-    }
+
+      return nextDialog.getPromise();
+    });
 
     finishAnimationChain
     .then(function() {
-      if (!skipFinishDialog && nextLevel) {
+      if (!skipFinishDialog /* && nextLevel */) {
         log.choseNextLevel(nextLevel.id);
         Main.getEventBaton().trigger(
           'commandSubmitted',

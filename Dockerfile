@@ -6,7 +6,7 @@ WORKDIR "/src"
 COPY . /src
 RUN yarn install && \
 	yarn cache clean
-RUN	yarn gulp build
+RUN	yarn gulp fastBuild
 
 FROM scratch AS export
 WORKDIR /

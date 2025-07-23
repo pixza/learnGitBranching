@@ -14,7 +14,7 @@ var fallbackMap = {
 // lets change underscores template settings so it interpolates
 // things like "{branchName} does not exist".
 var templateSettings = Object.assign({}, _.templateSettings);
-templateSettings.interpolate = /\{(.+?)\}/g;
+templateSettings.interpolate = /\|(.+?)\|/g;
 var template = exports.template = function(str, params) {
   return _.template(str, templateSettings)(params);
 };

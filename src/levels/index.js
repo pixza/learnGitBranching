@@ -15,7 +15,7 @@ var sequenceInfo = exports.sequenceInfo = {
     about: {
       'en_US': 'A git rebuild challenge, testing your skills at rebasing, merging, and cherry-picking'
     }
-  }
+  },
 };
 
 exports.getTabForSequence = function(sequenceName) {

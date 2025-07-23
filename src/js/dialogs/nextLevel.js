@@ -5,11 +5,12 @@ exports.dialog = {
       markdowns: [
         '## Well Done',
         '',
-        'You solved the level in *{numCommands}* command(s); ',
-        'our solution uses {best}.',
+        'You solved the level in *|numCommands|* command(s); ',
+        'our solution uses *|best|*.',
         '',
         'Here is the flag for completing the first challenge',
-        'CSIT{EWP@YAL3BARSTA7I0N}',
+        '',
+        '**CSIT{EWP@YAL3BARSTA7I0N}**',
       ]
     }
   }],

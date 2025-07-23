@@ -467,7 +467,9 @@ var NextLevelConfirm = ConfirmCancelTerminal.extend({
 
     // lol hax
     var markdowns = intl.getDialog(require('../dialogs/nextLevel'))[0].options.markdowns;
+
     var markdown = markdowns.join('\n');
+
     markdown = intl.template(markdown, {
       numCommands: options.numCommands,
       best: options.best
@@ -479,16 +481,15 @@ var NextLevelConfirm = ConfirmCancelTerminal.extend({
       markdown = markdown + '\n\n' + intl.str('finish-dialog-lose', {best: options.best});
     }
 
-    markdown = markdown + '\n\n';
+    markdown = markdown + '\n\n' + 'you can take the flag back to the csit challenge page for submission now';
     var extraHTML;
-    if (options.nextLevel) {
-      markdown = markdown + intl.str('finish-dialog-next', {nextLevel: nextLevelName});
-    } else {
-      extraHTML = '<p class="catchadream">' + intl.str('finish-dialog-finished') +
-        ' (ﾉ^_^)ﾉ (ﾉ^_^)ﾉ (ﾉ^_^)ﾉ' +
-        '</p>';
-    }
-
+    // if (options.nextLevel) {
+    //   markdown = markdown + intl.str('finish-dialog-next', {nextLevel: nextLevelName});
+    // } else {
+    //   extraHTML = '<p class="catchadream">' + intl.str('finish-dialog-finished') +
+    //     ' (ﾉ^_^)ﾉ (ﾉ^_^)ﾉ (ﾉ^_^)ﾉ' +
+    //     '</p>';
+    // }
     options = Object.assign(
       {},
       options,
