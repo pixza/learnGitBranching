@@ -607,7 +607,7 @@ var CanvasTerminalHolder = BaseView.extend({
     }
   },
 
-  getAnimationTime: function() { return 700; },
+  getAnimationTime: function() { return 400; },
 
   onClick: function() {
     this.die();
