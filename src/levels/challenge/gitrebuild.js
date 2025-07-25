@@ -17,7 +17,7 @@ exports.level = {
             "markdowns": [
               "# CSIT Mini Challenge #1",
               "",
-              "You have some development branches (firework & fountain) alongside your main branch, with a few bad commits in your main branch.",
+              "You have some development branches (dev1 & dev2) alongside your main branch, with a few bad commits in your main branch.",
               "",
               "The remote repository has already committed a mistake onto the main branch followed by a *correct* commit.",
               "",
