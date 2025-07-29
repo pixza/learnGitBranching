@@ -280,8 +280,7 @@ var fastBuild = series(clean, ifyBuild, style, buildIndex, jshint);
 var build = series(
   clean,
   miniBuild, style, buildIndex,
-  gitAdd, jasmine, jshint,
-  lintStrings, compliment
+  jshint, lintStrings, compliment
 );
 
 var deploy = series(
