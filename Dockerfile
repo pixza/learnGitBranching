@@ -3,11 +3,9 @@ FROM node:14.20.0-alpine3.16 as build
 RUN apk add git --no-cache
 WORKDIR "/src"
 
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile && \
-    yarn cache clean
-
 COPY . /src
+# Install dependencies
+RUN yarn install && yarn cache clean
 
 # Use the secure production build with obfuscation
 ENV NODE_ENV=production
