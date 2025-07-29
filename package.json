@@ -8,7 +8,10 @@
   "scripts": {
     "dev": "vite",
     "prepare": "gulp fastBuild",
-    "test": "gulp test"
+    "test": "gulp test",
+    "build": "gulp build",
+    "build:production": "NODE_ENV=production gulp productionBuild",
+    "build:secure": "NODE_ENV=production gulp productionBuild"
   },
   "repository": {
     "type": "git",
@@ -27,11 +30,13 @@
     "gulp-concat": "^2.6.1",
     "gulp-hash": "^4.2.2",
     "gulp-jasmine": "^4.0.0",
+    "gulp-javascript-obfuscator": "^1.1.6",
     "gulp-jshint": "^2.1.0",
     "gulp-terser": "^2.1.0",
     "gulp-uglify": "^3.0.2",
     "html-minifier": "^4.0.0",
     "jasmine-spec-reporter": "^7.0.0",
+    "javascript-obfuscator": "^4.0.2",
     "jshint": "^2.13.4",
     "prompt": "^1.2.2",
     "vinyl-buffer": "^1.0.1",

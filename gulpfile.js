@@ -21,6 +21,9 @@ var { minify } = require('html-minifier');
 var { SpecReporter } = require('jasmine-spec-reporter');
 var gJshint = require('gulp-jshint');
 
+// ADD THIS: Import the obfuscator
+var obfuscator = require('gulp-javascript-obfuscator');
+
 var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var browserify = require('browserify');
@@ -50,8 +53,39 @@ const lintStrings = (done) => {
   done();
 };
 
-
 var destDir = './build/';
+
+// ADD THIS: Obfuscation configuration
+var obfuscatorConfig = {
+  // String protection (crucial for hiding flags)
+  stringArray: true,
+  stringArrayThreshold: 0.8,
+  stringArrayEncoding: ['base64'],
+  rotateStringArray: true,
+  stringArrayWrappersCount: 2,
+  stringArrayWrappersChainedCalls: true,
+  
+  // Variable name obfuscation
+  identifierNamesGenerator: 'hexadecimalNumericSequence',
+  renameGlobals: false,
+  
+  // Control flow obfuscation
+  controlFlowFlattening: true,
+  controlFlowFlatteningThreshold: 0.5,
+  
+  // Dead code injection
+  deadCodeInjection: true,
+  deadCodeInjectionThreshold: 0.3,
+  
+  // Additional security
+  compact: true,
+  transformObjectKeys: true,
+  unicodeEscapeSequence: false,
+  
+  // Performance settings
+  disableConsoleOutput: true,
+  selfDefending: true
+};
 
 var copyRecursiveSync = (src, dest) => {
   var exists = existsSync(src);
@@ -141,7 +175,6 @@ var convertMarkdownStringsToHTML = function(markdowns) {
   return marked(markdowns.join('\n'));
 };
 
-
 var jshint = function() {
   return src([
     'gulpfile.js',
@@ -157,10 +190,30 @@ var ifyBuild = function() {
     .pipe(dest(destDir));
 };
 
+// UPDATED: Add obfuscation to production build
 var miniBuild = function() {
   process.env.NODE_ENV = 'production';
+  
+  var stream = getBundle()
+    .pipe(gTerser());
+  
+  // ADD OBFUSCATION: Only in production
+  if (process.env.NODE_ENV === 'production') {
+    log('Applying JavaScript obfuscation...');
+    stream = stream.pipe(obfuscator(obfuscatorConfig));
+  }
+  
+  return stream.pipe(dest(destDir));
+};
+
+// ADD THIS: New secure build task specifically for Docker/production
+var secureBuild = function() {
+  process.env.NODE_ENV = 'production';
+  log('Building with security obfuscation...');
+  
   return getBundle()
     .pipe(gTerser())
+    .pipe(obfuscator(obfuscatorConfig))
     .pipe(dest(destDir));
 };
 
@@ -275,12 +328,23 @@ var generateLevelDocs = function(done) {
   done();
 };
 
+// UPDATED: Build tasks
 var fastBuild = series(clean, ifyBuild, style, buildIndex, jshint);
 
+// UPDATED: Standard build with obfuscation for production
 var build = series(
   clean,
   miniBuild, style, buildIndex,
-  jshint, lintStrings, compliment
+  gitAdd, jasmine, jshint,
+  lintStrings, compliment
+);
+
+// ADD THIS: Secure build for Docker production
+var productionBuild = series(
+  clean,
+  secureBuild, style, buildIndex,
+  jasmine, jshint,
+  lintStrings, compliment
 );
 
 var deploy = series(
@@ -306,12 +370,14 @@ var watching = function() {
   ], series([fastBuild , jasmine, jshint, lintStrings]));
 };
 
+// UPDATED: Export new tasks
 module.exports = {
   default: build,
   lint,
   fastBuild,
   watching,
   build,
+  productionBuild,  // ADD THIS: New secure build task
   test: jasmine,
   deploy,
   generateLevelDocs,
