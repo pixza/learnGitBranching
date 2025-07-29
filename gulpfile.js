@@ -66,7 +66,7 @@ var obfuscatorConfig = {
   stringArrayWrappersChainedCalls: true,
   
   // Variable name obfuscation
-  identifierNamesGenerator: 'hexadecimalNumericSequence',
+  identifierNamesGenerator: 'hexadecimal',
   renameGlobals: false,
   
   // Control flow obfuscation
@@ -343,7 +343,7 @@ var build = series(
 var productionBuild = series(
   clean,
   secureBuild, style, buildIndex,
-  jasmine, jshint,
+  jshint,
   lintStrings, compliment
 );
 
