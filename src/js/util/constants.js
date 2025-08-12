@@ -18,7 +18,7 @@ var GRAPHICS = {
   nodeRadius: 17,
   curveControlPointOffset: 50,
   defaultEasing: 'easeInOut',
-  defaultAnimationTime: 400,
+  defaultAnimationTime: 100,
 
   rectFill: 'hsb(0.8816909813322127,0.6,1)',
   headRectFill: '#7278FF',
