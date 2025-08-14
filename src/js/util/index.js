@@ -1,5 +1,9 @@
-var { readdirSync, lstatSync } = require('fs');
-var { join } = require('path');
+// Only require fs and path in Node.js environment
+var fs, path;
+if (typeof window === 'undefined') {
+  fs = require('fs');
+  path = require('path');
+}
 
 var escapeString = require('../util/escapeString');
 var constants = require('../util/constants');
@@ -61,10 +65,16 @@ exports.genParseCommand = function(regexMap, eventName) {
 };
 
 exports.readDirDeep = function(dir) {
+  // Only works in Node.js environment
+  if (typeof window !== 'undefined') {
+    console.warn('readDirDeep: fs operations not available in browser');
+    return [];
+  }
+  
   var paths = [];
-  readdirSync(dir).forEach(function(path) {
-    var aPath = join(dir, path);
-    if (lstatSync(aPath).isDirectory()) {
+  fs.readdirSync(dir).forEach(function(filePath) {
+    var aPath = path.join(dir, filePath);
+    if (fs.lstatSync(aPath).isDirectory()) {
       paths.push(...exports.readDirDeep(aPath));
     } else {
       paths.push(aPath);
