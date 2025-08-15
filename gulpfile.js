@@ -142,6 +142,7 @@ var buildIndex = function(done) {
 var getBundle = function() {
   var bundleCollapser = require('bundle-collapser/plugin');
   var terser = require('gulp-terser');
+  var obfuscator = require('gulp-javascript-obfuscator');
   
   var b = browserify({
     entries: [...glob.sync('src/**/*.js'), ...glob.sync('src/**/*.jsx')],
@@ -172,6 +173,33 @@ var getBundle = function() {
         // Don't mangle global variables
         reserved: ['jQuery', '$', 'Backbone', '_', 'Raphael']
       }
+    }));
+  }
+  
+  // Add obfuscation for CTF builds
+  if (process.env.OBFUSCATE === 'true') {
+    log('Applying JavaScript obfuscation for CTF challenge...');
+    stream = stream.pipe(obfuscator({
+      // High obfuscation settings for CTF
+      compact: true,
+      controlFlowFlattening: true,
+      controlFlowFlatteningThreshold: 1,
+      numbersToExpressions: true,
+      simplify: true,
+      stringArrayShuffle: true,
+      splitStrings: true,
+      stringArray: true,
+      stringArrayThreshold: 1,
+      transformObjectKeys: true,
+      unicodeEscapeSequence: true,
+      identifierNamesGenerator: 'hexadecimal',
+      renameGlobals: false, // Keep globals like jQuery
+      reservedNames: ['^jQuery$', '^\\$$', '^Backbone$', '^_$', '^Raphael$'],
+      selfDefending: true,
+      deadCodeInjection: true,
+      deadCodeInjectionThreshold: 1,
+      debugProtection: true,
+      debugProtectionInterval: 2000
     }));
   }
   
@@ -510,11 +538,24 @@ var analyze = function(done) {
   done();
 };
 
+// CTF build with obfuscation
+var buildCTF = series(
+  clean,
+  miniBuild,
+  style,
+  buildIndex,
+  gitAdd,
+  jshint,
+  lintStrings,
+  compliment
+);
+
 module.exports = {
   default: build,
   lint: lint,
   fastBuild: fastBuild,
   build: build,
+  buildCTF: buildCTF,
   fastBuildRollup: fastBuildRollup,
   buildRollup: buildRollup,
   watching: watching,

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(yarn analyze)",
-      "Bash(npx gulp analyze:*)"
+      "Bash(npx gulp analyze:*)",
+      "Bash(npm install:*)"
     ],
     "defaultMode": "acceptEdits"
   }
