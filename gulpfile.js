@@ -129,7 +129,7 @@ var buildIndex = function(done) {
     });
   }
 
-  if (process.env.CI) {
+  if (process.env.CI || process.env.NODE_ENV === 'production') {
     writeFileSync('build/index.html', outputIndex);
     copyRecursiveSync('assets', 'build/assets');
   } else {
@@ -180,26 +180,31 @@ var getBundle = function() {
   if (process.env.OBFUSCATE === 'true') {
     log('Applying JavaScript obfuscation for CTF challenge...');
     stream = stream.pipe(obfuscator({
-      // High obfuscation settings for CTF
+      // Optimized obfuscation settings for CTF (better size/performance balance)
       compact: true,
       controlFlowFlattening: true,
-      controlFlowFlatteningThreshold: 1,
+      controlFlowFlatteningThreshold: 0.75, // Reduced from 1 for better performance
       numbersToExpressions: true,
       simplify: true,
       stringArrayShuffle: true,
       splitStrings: true,
+      splitStringsChunkLength: 5, // Smaller chunks for better compression
       stringArray: true,
-      stringArrayThreshold: 1,
+      stringArrayThreshold: 0.8, // Reduced from 1 to balance size
       transformObjectKeys: true,
-      unicodeEscapeSequence: true,
+      unicodeEscapeSequence: false, // Disabled to reduce size significantly
       identifierNamesGenerator: 'hexadecimal',
       renameGlobals: false, // Keep globals like jQuery
       reservedNames: ['^jQuery$', '^\\$$', '^Backbone$', '^_$', '^Raphael$'],
       selfDefending: true,
       deadCodeInjection: true,
-      deadCodeInjectionThreshold: 1,
+      deadCodeInjectionThreshold: 0.4, // Reduced for better size
       debugProtection: true,
-      debugProtectionInterval: 2000
+      debugProtectionInterval: 2000,
+      // Additional optimizations
+      stringArrayEncoding: ['base64'], // More efficient than rc4
+      stringArrayWrappersCount: 2, // Reduced wrapper count
+      stringArrayWrappersChainedCalls: true
     }));
   }
   
@@ -482,9 +487,25 @@ var fastBuildRollup = series(clean, rollupBuild, style, buildIndex, jshint);
 
 var build = series(
   clean,
-  miniBuild, style, buildIndex,
-  gitAdd, jshint,
-  lintStrings, compliment
+  miniBuild, 
+  style, 
+  buildIndex,
+  gitAdd, 
+  jshint,
+  lintStrings, 
+  compliment
+);
+
+// CTF build with obfuscation
+var buildCTF = series(
+  clean,
+  miniBuild,
+  style,
+  buildIndex,
+  gitAdd,
+  jshint,
+  lintStrings,
+  compliment
 );
 
 var buildRollup = series(
@@ -538,17 +559,7 @@ var analyze = function(done) {
   done();
 };
 
-// CTF build with obfuscation
-var buildCTF = series(
-  clean,
-  miniBuild,
-  style,
-  buildIndex,
-  gitAdd,
-  jshint,
-  lintStrings,
-  compliment
-);
+
 
 module.exports = {
   default: build,

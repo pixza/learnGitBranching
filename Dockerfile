@@ -10,11 +10,11 @@ COPY . /src
 
 # Use the secure production build with obfuscation
 ENV NODE_ENV=production
-RUN yarn gulp productionBuild
+RUN yarn build:ctf
 
 FROM scratch AS export
 WORKDIR /
-COPY --from=build /src/index.html .
+COPY --from=build /src/build/index.html .
 COPY --from=build /src/build ./build
 
 FROM nginx:stable-alpine
