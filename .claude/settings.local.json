@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn analyze)",
+      "Bash(npx gulp analyze:*)"
+    ],
+    "defaultMode": "acceptEdits"
+  }
+}

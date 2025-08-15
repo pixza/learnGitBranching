@@ -28,7 +28,7 @@ var browserify = require('browserify');
 var babelify = require('babelify');
 
 // Rollup imports - only loaded when needed
-var rollup, rollupResolve, rollupCommonjs, rollupBabel, rollupTerser, rollupReplace;
+var rollup, rollupResolve, rollupCommonjs, rollupBabel, rollupTerser, rollupReplace, rollupPolyfillNode, rollupAlias;
 
 // Try to load Rollup plugins, fallback to Browserify if they fail
 try {
@@ -38,6 +38,8 @@ try {
   rollupBabel = require('@rollup/plugin-babel').default;
   rollupTerser = require('@rollup/plugin-terser').default;
   rollupReplace = require('@rollup/plugin-replace').default;
+  rollupPolyfillNode = require('rollup-plugin-polyfill-node');
+  rollupAlias = require('@rollup/plugin-alias').default;
   log('Rollup plugins loaded successfully');
 } catch (e) {
   log.warn('Rollup plugins not found, falling back to Browserify');
@@ -138,15 +140,42 @@ var buildIndex = function(done) {
 
 // Original Browserify function (your working version)
 var getBundle = function() {
-  return browserify({
+  var bundleCollapser = require('bundle-collapser/plugin');
+  var terser = require('gulp-terser');
+  
+  var b = browserify({
     entries: [...glob.sync('src/**/*.js'), ...glob.sync('src/**/*.jsx')],
-    debug: true,
+    debug: process.env.NODE_ENV !== 'production',
   })
-  .transform(babelify, { presets: ['@babel/preset-react'] })
-  .bundle()
-  .pipe(source('bundle.js'))
-  .pipe(buffer())
-  .pipe(gHash());
+  .transform(babelify, { presets: ['@babel/preset-react'] });
+  
+  // Add optimizations for production
+  if (process.env.NODE_ENV === 'production') {
+    b = b.plugin(bundleCollapser);
+  }
+  
+  var stream = b.bundle()
+    .pipe(source('bundle.js'))
+    .pipe(buffer());
+    
+  // Add terser manually for better control
+  if (process.env.NODE_ENV === 'production') {
+    stream = stream.pipe(terser({
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        global_defs: {
+          "@process.env.NODE_ENV": JSON.stringify("production")
+        }
+      },
+      mangle: {
+        // Don't mangle global variables
+        reserved: ['jQuery', '$', 'Backbone', '_', 'Raphael']
+      }
+    }));
+  }
+  
+  return stream.pipe(gHash());
 };
 
 // Rollup configuration factory
@@ -155,25 +184,46 @@ var getRollupConfig = function(isProduction) {
   return {
     input: 'src/js/app/index.js',
     plugins: [
+      rollupAlias({
+        entries: [
+          { find: 'jquery', replacement: path.resolve(__dirname, 'node_modules/jquery/dist/jquery.js') },
+          { find: 'underscore', replacement: path.resolve(__dirname, 'node_modules/underscore/underscore.js') },
+          { find: 'backbone', replacement: path.resolve(__dirname, 'node_modules/backbone/backbone.js') }
+        ]
+      }),
+      rollupPolyfillNode({
+        include: ['fs', 'path', 'util', 'events'],
+        globals: {
+          global: 'globalThis',
+          __filename: 'undefined',
+          __dirname: 'undefined'
+        }
+      }),
       rollupResolve({
         browser: true,
         preferBuiltins: false,
         extensions: ['.js', '.jsx', '.json'],
-        skip: ['fs', 'path', 'crypto', 'os', 'util']
+        dedupe: ['react', 'react-dom', 'jquery', 'backbone', 'underscore', 'raphael']
       }),
       rollupCommonjs({
         include: ['node_modules/**', 'src/**/*.js', 'src/**/*.jsx'],
         transformMixedEsModules: true,
         requireReturnsDefault: 'auto',
         ignoreDynamicRequires: false,
-        sourceMap: !isProduction
+        sourceMap: !isProduction,
+        strictRequires: true
       }),
       rollupReplace({
         'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
-        'require(\'fs\')': '{}',
-        'require("fs")': '{}',
-        'require(\'path\')': '{}',
-        'require("path")': '{}',
+        'typeof global': '"object"',
+        'global.': 'globalThis.',
+        'global[': 'globalThis[',
+        ' global ': ' globalThis ',
+        '(global)': '(globalThis)',
+        'globalThis$1': 'globalThis',
+        // Add comprehensive require replacements
+        'typeof require': '"function"',
+        'require.resolve': '(function() { throw new Error("require.resolve not supported"); })',
         preventAssignment: true
       }),
       rollupBabel({
@@ -188,22 +238,16 @@ var getRollupConfig = function(isProduction) {
         drop_debugger: true
       }
     })] : []),
-    external: ['fs', 'path', 'crypto', 'os', 'util', 'child_process'],
     output: {
-      format: 'umd',
+      format: 'iife',
       name: 'LearnGitBranching',
       sourcemap: !isProduction,
       globals: {
-        'fs': '{}',
-        'path': '{}',
-        'crypto': '{}',
-        'os': '{}',
-        'util': '{}',
-        'child_process': '{}',
-        'jquery': '$',
-        'backbone': 'Backbone',
-        'underscore': '_'
-      }
+        'globalThis$1': 'globalThis',
+        ' polyfill-node.globalThis': 'globalThis',
+        'global': 'globalThis'
+      },
+      intro: 'var global = globalThis;'
     },
     treeshake: {
       moduleSideEffects: true,
@@ -214,11 +258,6 @@ var getRollupConfig = function(isProduction) {
     onwarn: function(warning, warn) {
       if (warning.code === 'THIS_IS_UNDEFINED') return;
       if (warning.code === 'CIRCULAR_DEPENDENCY') return;
-      if (warning.code === 'UNRESOLVED_IMPORT') {
-        if (['fs', 'path', 'crypto', 'os', 'util', 'child_process'].includes(warning.source)) {
-          return;
-        }
-      }
       warn(warning);
     }
   };
@@ -232,35 +271,37 @@ var runRollup = function(isProduction) {
     throw new Error('Rollup not available, please install Rollup dependencies');
   }
   
-  return new Promise(function(resolve, reject) {
-    log('Building bundle with Rollup' + (isProduction ? ' (production)' : '') + '...');
-    
-    var config = getRollupConfig(isProduction);
-    
-    rollup(config)
-      .then(function(bundle) {
-        return bundle.generate(config.output);
-      })
-      .then(function(result) {
-        var output = result.output;
-        var chunk = output.find(function(chunk) {
-          return chunk.type === 'chunk' && chunk.isEntry;
-        });
-        
-        if (!chunk) {
-          throw new Error('No entry chunk found in Rollup output');
-        }
-        
-        log('Bundle generated successfully (' + (chunk.code.length / 1024).toFixed(1) + 'KB)');
-        
-        var stream = source('bundle.js');
-        stream.write(chunk.code);
-        stream.end();
-        
-        resolve(stream.pipe(buffer()).pipe(gHash()));
-      })
-      .catch(reject);
-  });
+  log('Building bundle with Rollup' + (isProduction ? ' (production)' : '') + '...');
+  
+  var config = getRollupConfig(isProduction);
+  
+  return rollup(config)
+    .then(function(bundle) {
+      return bundle.generate(config.output);
+    })
+    .then(function(result) {
+      var output = result.output;
+      var chunk = output.find(function(chunk) {
+        return chunk.type === 'chunk' && chunk.isEntry;
+      });
+      
+      if (!chunk) {
+        throw new Error('No entry chunk found in Rollup output');
+      }
+      
+      log('Bundle generated successfully (' + (chunk.code.length / 1024).toFixed(1) + 'KB)');
+      
+      // Create a vinyl stream similar to how browserify does it
+      var vinylStream = source('bundle.js');
+      vinylStream.write(chunk.code);
+      vinylStream.end();
+      
+      // Pipe through the same plugins as browserify
+      return vinylStream
+        .pipe(buffer())
+        .pipe(gHash())
+        .pipe(dest(destDir));
+    });
 };
 
 var clean = function () {
@@ -302,9 +343,7 @@ var rollupBuild = function() {
     return ifyBuild();
   }
   
-  return runRollup(false).then(function(stream) {
-    return stream.pipe(dest(destDir));
-  });
+  return runRollup(false);
 };
 
 var rollupMiniBuild = function() {
@@ -314,9 +353,7 @@ var rollupMiniBuild = function() {
   }
   
   process.env.NODE_ENV = 'production';
-  return runRollup(true).then(function(stream) {
-    return stream.pipe(dest(destDir));
-  });
+  return runRollup(true);
 };
 
 var style = function() {
@@ -451,6 +488,28 @@ var watching = function() {
   ], series([fastBuild, jasmine, jshint, lintStrings]));
 };
 
+// Bundle analysis task
+var analyze = function(done) {
+  var disc = require('disc');
+  var fs = require('fs');
+  
+  log('Creating bundle analysis...');
+  
+  var b = browserify({
+    entries: [...glob.sync('src/**/*.js'), ...glob.sync('src/**/*.jsx')],
+    debug: false,
+    fullPaths: true,
+  })
+  .transform(babelify, { presets: ['@babel/preset-react'] });
+  
+  b.bundle()
+    .pipe(disc())
+    .pipe(fs.createWriteStream('bundle-analysis.html'));
+    
+  log('Bundle analysis written to bundle-analysis.html');
+  done();
+};
+
 module.exports = {
   default: build,
   lint: lint,
@@ -462,4 +521,5 @@ module.exports = {
   test: jasmine,
   deploy: deploy,
   generateLevelDocs: generateLevelDocs,
+  analyze: analyze,
 };
